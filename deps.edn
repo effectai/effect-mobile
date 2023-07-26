@@ -2,4 +2,4 @@
                         :sha "08f2bfea96aa48feb8511851e37f5948453986e5"}
 
         com.pitch/uix.core {:mvn/version "0.10.0"}
-        com.pitch/uix.dom {:mvn/version "0.10.0"}}}
+        com.fbeyer/refx {:mvn/version "0.0.49"}}}
