@@ -38,9 +38,9 @@
                          :scope "force.efx"
                          :on-success [:success-load-campaigns]}}))
 
-(defui campaign-box [c]
+(defui campaign-box [{c :children}]
   (let [{:keys [description category title image]} (use-sub [:campaign-content c])]
-    ($ Text {:key (:id c)} (str "*" title "*" (get-in c [:owner 0]) " x~~ " (get-in c [:owner 1])))))
+    ($ Text  (str "*" title "*" (get-in c [:owner 0]) " x~~ " (get-in c [:owner 1])))))
 
 (defui main-screen []
   (let [[value set-value!] (uix.core/use-state "demo text field")
@@ -56,7 +56,7 @@
                      (prn "loading campaigns..."))}
           (str "load campaigns: " total-ticks))
        (for [c campaigns]
-         ($ campaign-box c)))))
+         ($ campaign-box {:key (:id c)} c)))))
 
 (refx/reg-sub
   :total-ticks
