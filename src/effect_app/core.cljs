@@ -4,13 +4,9 @@
             [refx.alpha :as refx :refer [reg-event-fx dispatch use-sub reg-fx sub]]
             [goog.object :as g]
             ["@wharfkit/antelope" :refer [APIClient FetchProvider]]
-            [refx.http]
-            [ajax.core :as ajax]))
+            effect-app.modules.eos
+            effect-app.modules.effect))
 
-(def eos
-  (-> (APIClient. #js {:provider (FetchProvider. "https://eos.greymass.com")})
-      (goog.object/get "v1")
-      (goog.object/get "chain")))
 
 (defui button [{:keys [on-click children]}]
   ($ Button {:on-press on-click :title children}))
@@ -19,24 +15,17 @@
  :success-load-campaigns
  (fn [{[_ campaigns] :event :keys [db]}]
    (let [ipfs-hash (get-in campaigns [0 :content :field_1])]
-     ;; if ipfs-hash not in cash, load it
-     {:db (assoc db :campaigns campaigns)
-      :http {:uri (str "https://ipfs.effect.ai/ipfs/" ipfs-hash)
-             :timeout 10000
-             :format (ajax/json-request-format)
-             :response-format (ajax/json-response-format {:keywords? true})
-             :method :get
-             :on-success [:success-ipfs-result ipfs-hash]
-             :on-failure [:failure-ipfs-result]}})))
+     {:db (assoc db :campaigns campaigns)})))
 
 (reg-event-fx
  :click-load-campaigns
  (fn [{:keys [db]} _]
    {:db (update db :total-ticks inc)
-    :eos/get-table-rows {:code "force.efx"
+    :eos/get-table-rows {:code "effecttasks2"
                          :table "campaign"
-                         :scope "force.efx"
-                         :on-success [:success-load-campaigns]}}))
+                         :scope "effecttasks2"
+                         :on-success [:success-load-campaigns]}
+    :efx/login {}}))
 
 (defui campaign-box [{c :children}]
   (let [{:keys [description category title image]} (use-sub [:campaign-content c])]
@@ -85,11 +74,12 @@
     content))
 
 (reg-event-fx
- :launch-app
+ :app-load
  (fn [{:keys [db]} _]
    {:db {:current-path "/home"
          :total-ticks 0
-         :ipfs-objects {}}}))
+         :ipfs-objects {}}
+    :efx/init "jungle4"}))
 
 (reg-event-fx
  :success-ipfs-result
@@ -103,18 +93,10 @@
    {}))
 
 (defn ^:export -main [& args]
-  (refx/dispatch-sync [:launch-app])
+  (refx/dispatch-sync [:app-load])
   ($ SafeAreaView
-     ($ Text "bare bones demo of effect network native app")
+     ($ View {:style {:padding 10}}
+        ($ Text {:style {:font-family "Inter-Regular"
+                         :font-size 24}}
+           "This is a header"))
      ($ main-screen)))
-
-;; EFFECT HANDLERS
-(reg-fx
- :eos/get-table-rows
- (fn [{:keys [on-success] :as args}]
-   (-> (.call (goog.object/get eos "get_table_rows") eos (clj->js args))
-       (.then
-        (fn [res]
-          (let [rows (:rows (js->clj res :keywordize-keys true))]
-            (dispatch (conj on-success rows)))))
-       (.catch (fn [res] (prn "Error in get_table_rows" res))))))

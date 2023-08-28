@@ -10,10 +10,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@effectai/effect-js": "file:/home/jesse/repos/effect/effect-js",
     "@wharfkit/antelope": "^0.7.2",
+    "base-64": "^1.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-native": "0.72.3"
+    "react-native": "0.72.3",
+    "text-encoding": "^0.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
