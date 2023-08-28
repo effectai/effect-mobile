@@ -1,6 +1,6 @@
 (ns effect-app.core
   (:require [uix.core :refer [defui $]]
-            [react-native :refer [Text Button View TextInput SafeAreaView]]
+            [react-native :refer [Text Button View TextInput SafeAreaView Status StatusBar]]
             [refx.alpha :as refx :refer [reg-event-fx dispatch use-sub reg-fx sub]]
             [goog.object :as g]
             ["@wharfkit/antelope" :refer [APIClient FetchProvider]]
@@ -95,6 +95,8 @@
 (defn ^:export -main [& args]
   (refx/dispatch-sync [:app-load])
   ($ SafeAreaView
+     ($ StatusBar {:background-color "#F0F0F0"
+                   :bar-style "dark-content"})
      ($ View {:style {:padding 10}}
         ($ Text {:style {:font-family "Inter-Regular"
                          :font-size 24}}
