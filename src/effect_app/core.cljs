@@ -7,7 +7,8 @@
             ["@react-navigation/native-stack" :refer [createNativeStackNavigator]]
             ["@react-navigation/native" :refer [NavigationContainer]]
             effect-app.modules.eos
-            effect-app.modules.effect))
+            effect-app.modules.effect
+            [effect-app.modules.navigation :as nav]))
 
 
 (defui button [{:keys [on-click children]}]
@@ -33,6 +34,11 @@
   (let [{:keys [description category title image]} (use-sub [:campaign-content c])]
     ($ Text  (str "*" title "*" (get-in c [:owner 0]) " x~~ " (get-in c [:owner 1])))))
 
+(reg-event-fx
+ :proceed
+ (fn [_]
+   {:navigate ["Login" nil]}))
+
 (defui main-screen []
   (let [[value set-value!] (uix.core/use-state "demo text field")
         ;;[camps set-camps!] (uix.core/use-state [])
@@ -46,6 +52,11 @@
                      (dispatch [:click-load-campaigns])
                      (prn "loading campaigns..."))}
           (str "load campaigns: " total-ticks))
+       ($ View {:style {:margin-top 20}}
+          ($ button {:on-click
+                     #(do
+                        (dispatch [:proceed]))}
+             (str "Proceed")))
        (for [c campaigns]
          ($ campaign-box {:key (:id c)} c)))))
 
@@ -96,7 +107,7 @@
 
 (def stack-nav (createNativeStackNavigator))
 
-(defui home-screen [{:keys [children]}]
+(defui landing-screen [{:keys [children]}]
   ($ SafeAreaView
      ($ StatusBar {:background-color "#F0F0F0"
                    :bar-style "dark-content"})
@@ -106,11 +117,52 @@
            "This is a header"))
      ($ main-screen)))
 
+(defui login-screen [{:keys [children]}]
+  ($ SafeAreaView
+     ($ StatusBar {:background-color "#F0F0F0"
+                   :bar-style "dark-content"})
+     ($ View {:style {:padding 10}}
+        ($ Text {:style {:font-family "Inter-Regular"
+                         :font-size 24}}
+           "LOGIN")
+        ($ button {:on-click #(dispatch [:login])}
+           "log i n"))))
+
+(defui home-screen [{:keys [children]}]
+  ($ SafeAreaView
+     ($ StatusBar {:background-color "#F0F0F0"
+                   :bar-style "dark-content"})
+     ($ View {:style {:padding 10}}
+        ($ Text {:style {:font-family "Inter-Regular"
+                         :font-size 24}}
+           "Home"))))
+
+(reg-event-fx
+ :login
+ (fn [_]
+   {:reset-navigate ["Home"]}))
+
+(def nav-theme
+  #js {:colors #js {:primary "rgb(0, 0, 0)"
+                    :background "#F0F0F0"
+                    :text "#000000"
+                    :border "#000000"}})
+
 (defn ^:export -main [& args]
   (refx/dispatch-sync [:app-load])
   ($ NavigationContainer
+     {:ref nav/navigation-ref
+      :theme nav-theme}
      ($ (.-Navigator stack-nav)
         ($ (.-Screen stack-nav)
+           {:name "Landing"
+            :options #js {:headerShown false}}
+           #($ landing-screen))
+        ($ (.-Screen stack-nav)
+           {:name "Login"
+            :options #js {:title "Login"}}
+           #($ login-screen))
+        ($ (.-Screen stack-nav)
            {:name "Home"
-            :options #js {:title "Effect"}}
+            :options #js {:title "Home"}}
            #($ home-screen)))))
