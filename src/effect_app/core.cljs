@@ -4,6 +4,8 @@
             [refx.alpha :as refx :refer [reg-event-fx dispatch use-sub reg-fx sub]]
             [goog.object :as g]
             ["@wharfkit/antelope" :refer [APIClient FetchProvider]]
+            ["@react-navigation/native-stack" :refer [createNativeStackNavigator]]
+            ["@react-navigation/native" :refer [NavigationContainer]]
             effect-app.modules.eos
             effect-app.modules.effect))
 
@@ -92,8 +94,9 @@
    (prn  (count (:result res)))
    {}))
 
-(defn ^:export -main [& args]
-  (refx/dispatch-sync [:app-load])
+(def stack-nav (createNativeStackNavigator))
+
+(defui home-screen [{:keys [children]}]
   ($ SafeAreaView
      ($ StatusBar {:background-color "#F0F0F0"
                    :bar-style "dark-content"})
@@ -102,3 +105,12 @@
                          :font-size 24}}
            "This is a header"))
      ($ main-screen)))
+
+(defn ^:export -main [& args]
+  (refx/dispatch-sync [:app-load])
+  ($ NavigationContainer
+     ($ (.-Navigator stack-nav)
+        ($ (.-Screen stack-nav)
+           {:name "Home"
+            :options #js {:title "Effect"}}
+           #($ home-screen)))))
