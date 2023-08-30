@@ -23,20 +23,20 @@
 
 ;; (prn "--" (.-session effect))
 (reg-fx
- :efx/init
+ ::init
  (fn [args]
    (prn "Initializing Effect client with " args)
    (reset! client (Client.))
    (reset! eos/api-client (g/get @client "eos"))))
 
 (reg-fx
- :efx/login
- (fn [hi]
+ ::login
+ (fn [{:keys [actor permission key]}]
    (prn @client)
    (prn "Logging in with " hi)
    (.call (g/get @client "login")
           @client
-          "efxefxefxefx"
-          "active"
-          "5JSzMa3SXASiS14mZxsV36m4NdWKQCY9dctp3t5H1VhcVXUr4my")
+          actor
+          permission
+          key)
    (prn (.-session @client))))
