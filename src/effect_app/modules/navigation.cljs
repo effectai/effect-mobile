@@ -7,18 +7,19 @@
             ["@react-navigation/native" :refer [NavigationContainer
                                                 useNavigation
                                                 StackActions
-                                                createNavigationContainerRef]]))
+                                                createNavigationContainerRef
+                                                ]]))
 
 (def navigation-ref (createNavigationContainerRef))
 
 (reg-fx
- :navigate
+ ::navigate
  (fn [[screen-name event-id]]
    (prn "Navigating to " screen-name event-id)
    (.navigate navigation-ref screen-name event-id)))
 
 (reg-fx
- :reset-navigate
+ ::reset-navigate
  (fn [[screen-name]]
    (prn "Reset navigation history to " screen-name)
    ((g/get navigation-ref "dispatch") ((g/get StackActions "popToTop")))

@@ -1,18 +1,18 @@
 (ns effect-app.core
   (:require [uix.core :refer [defui $]]
-            [react-native :refer [Text Button View TextInput SafeAreaView Status StatusBar Image]]
+            [effect-app.ui :as ui]
+            [react-native :refer [Text Button View TextInput SafeAreaView Status StatusBar Image
+                                  TouchableHighlight TouchableOpacity]]
             [refx.alpha :as refx :refer [reg-event-fx dispatch use-sub reg-fx sub]]
             [goog.object :as g]
             ["@wharfkit/antelope" :refer [APIClient FetchProvider]]
             ["@react-navigation/native-stack" :refer [createNativeStackNavigator]]
             ["@react-navigation/native" :refer [NavigationContainer]]
+
+            effect-app.screens.landing
             effect-app.modules.eos
             effect-app.modules.effect
             [effect-app.modules.navigation :as nav]))
-
-
-(defui button [{:keys [on-click children]}]
-  ($ Button {:on-press on-click :title children}))
 
 (reg-event-fx
  :success-load-campaigns
@@ -35,30 +35,14 @@
     ($ Text  (str "*" title "*" (get-in c [:owner 0]) " x~~ " (get-in c [:owner 1])))))
 
 (reg-event-fx
- :proceed
- (fn [_]
-   {:navigate ["Login" nil]}))
+ :assoc-db
+ (fn [db [_ k v]]
+   {:db (assoc db k v)}))
 
-(defui main-screen []
-  (let [[value set-value!] (uix.core/use-state "demo text field")
-        ;;[camps set-camps!] (uix.core/use-state [])
-        total-ticks (use-sub [:total-ticks])
-        campaigns (use-sub [:campaigns])]
-    ($ View
-       ($ TextInput {:value value
-                     :on-change-text #(set-value! %)})
-       ($ button {:on-click
-                  #(do
-                     (dispatch [:click-load-campaigns])
-                     (prn "loading campaigns..."))}
-          (str "load campaigns: " total-ticks))
-       ($ View {:style {:margin-top 20}}
-          ($ button {:on-click
-                     #(do
-                        (dispatch [:proceed]))}
-             (str "Proceed")))
-       (for [c campaigns]
-         ($ campaign-box {:key (:id c)} c)))))
+(refx/reg-sub
+ :get
+ (fn [db [_ k]]
+   (get db k)))
 
 (refx/reg-sub
   :total-ticks
@@ -89,10 +73,12 @@
 (reg-event-fx
  :app-load
  (fn [{:keys [db]} _]
-   {:db {:current-path "/home"
-         :total-ticks 0
-         :ipfs-objects {}}
-    :efx/init "jungle4"}))
+   {:db (if (empty? db)
+          {:current-path "/home"
+           :total-ticks 0
+           :ipfs-objects {}}
+          db)
+    :effect-app.modules.effect/init "jungle4"}))
 
 (reg-event-fx
  :success-ipfs-result
@@ -107,28 +93,6 @@
 
 (def stack-nav (createNativeStackNavigator))
 
-(defui landing-screen [{:keys [children]}]
-  ($ SafeAreaView
-     ($ StatusBar {:background-color "#F0F0F0"
-                   :bar-style "dark-content"})
-     ($ View {:style {:padding 10}}
-        ($ Text {:style {:font-family "Inter-Regular"
-                         :font-size 24}}
-           "This is a header"))
-     ($ main-screen)))
-
-(defui login-screen [{:keys [children]}]
-  ($ SafeAreaView
-     ($ StatusBar {:background-color "#F0F0F0"
-                   :bar-style "dark-content"})
-     ($ View {:style {:padding 10}}
-        ($ Text {:style {:font-family "Inter"
-                         :color "black"
-                         :font-size 24}}
-           "LOGIN")
-        ($ button {:on-click #(dispatch [:login])}
-           "log i n"))))
-
 (defui home-screen [{:keys [children]}]
   ($ SafeAreaView
      ($ StatusBar {:background-color "#F0F0F0"
@@ -139,9 +103,7 @@
                          :fontFamily "Inter-Regular"}}
            "Home"))))
 
-;; https://www.flaticon.com/icon-fonts-most-downloaded?weight=bold&type=uicon
-(def icons {:dollar (js/require "./img/icon/1/dollar.png")
-            :info (js/require "./img/icon/1/info.png")})
+
 
 (defn wrap
   "Helper that allows us to destructure javascript objects"
@@ -162,15 +124,16 @@
             (prn "asdf " route-name)
             #js {:headerShown false
                  :tabBarActiveTintColor "black"
-                 :tabBarInactiveTintColor "rgba(0, 0, 0, 0.4)"
+                 :tabBarInactiveTintColor "rgba(0, 0, 0, 0.25)"
                  :tabBarShowLabel false
                  :tabBarIcon (fn [args]
                                (let [{:keys [focused size color]} (wrap args)]
                                  (prn "asdfasdf " focused)
                                  ($ Image {:source
                                            (case route-name
-                                             "Overview" (:dollar icons)
-                                             "Profile" (:info icons))
+                                             "Overview" (ui/icons :dollar)
+                                             "Profile" (ui/icons :portrait)
+                                             "Campaigns" (ui/icons :apps))
                                            :style {:width size
                                                    :height size
                                                    :tintColor color
@@ -189,12 +152,10 @@
           #($ home-screen))
        ($ tab-screen
           {:name "Profile"}
-          #($ login-screen)))))
-
-(reg-event-fx
- :login
- (fn [_]
-   {:reset-navigate ["Home"]}))
+          #($ home-screen))
+       ($ tab-screen
+          {:name "Campaigns"}
+          #($ home-screen)))))
 
 (def nav-theme
   #js {:colors #js {:primary "rgb(0, 0, 0)"
@@ -205,17 +166,32 @@
   (refx/dispatch-sync [:app-load])
   ($ NavigationContainer
      {:ref nav/navigation-ref
-      ;; :theme nav-theme
-      }
+      :theme nav-theme}
      ($ (.-Navigator stack-nav)
+        #js {:screenOptions
+             #js {:headerTitleAlign "center"
+                  :headerStyle #js {:backgroundColor "#EEEEEE"}
+                  :headerTitleStyle #js {:fontFamily "Inter-SemiBold"}}}
         ($ (.-Screen stack-nav)
            {:name "Landing"
             :options #js {:headerShown false}}
-           #($ landing-screen))
+           #($ effect-app.screens.landing/landing-screen))
         ($ (.-Screen stack-nav)
-           {:name "Login"
-            :options #js {:title "Login"}}
-           #($ login-screen))
+           {:name "Login Overview"
+            :options #js {:headerShown false}}
+           #($ effect-app.screens.landing/login-overview-screen))
+        ($ (.-Screen stack-nav)
+           {:name "Login Options"
+            :options #js {:title "Login Options"}}
+           #($ effect-app.screens.landing/login-options-screen))
+        ($ (.-Screen stack-nav)
+           {:name "Login Private Key"
+            :options #js {:title "Import Key"}}
+           #($ effect-app.screens.landing/login-with-key-screen))
+        ($ (.-Screen stack-nav)
+           {:name "Select Authorized Account"
+            :options #js {:title "Select Account"}}
+           #($ effect-app.screens.landing/select-account-screen))
         ($ (.-Screen stack-nav)
            {:name "Home"
             :options #js {:headerShown false}}

@@ -13,10 +13,10 @@
 
 (defn call-chain [method args]
   (let [chain (-> @api-client (g/get "v1") (g/get "chain"))]
-    (.call (g/get chain "get_table_rows") chain (clj->js args))))
+    (.call (g/get chain method) chain (clj->js args))))
 
 (reg-fx
- :eos/get-table-rows
+ ::get-table-rows
  (fn [{:keys [on-success] :as args}]
    (-> (call-chain "get_table_rows" args)
        (.then
@@ -24,3 +24,17 @@
           (let [rows (:rows (js->clj res :keywordize-keys true))]
             (dispatch (conj on-success rows)))))
        (.catch (fn [res] (prn "Error in get_table_rows" res))))))
+
+(reg-fx
+ ::get-accounts-for-public-key
+ (fn [{:keys [on-success public-key] :as args}]
+   (-> (call-chain "get_accounts_by_authorizers" {:keys [public-key]})
+       (.then
+        (fn [res]
+          (let [rows (mapv (fn [a]
+                             (reduce #(assoc %1 (keyword %2) (.toString (g/get a %2)))
+                                     {}
+                                     ["account_name" "permission_name" "authorizing_key" "weight" "threshold"]))
+                           (g/get res "accounts"))]
+            (dispatch (conj on-success [:ok rows])))))
+       (.catch (fn [res] (prn "Error in get_accounts_by_authorizers" res))))))

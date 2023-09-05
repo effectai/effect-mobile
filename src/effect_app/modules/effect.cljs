@@ -33,7 +33,7 @@
  ::login
  (fn [{:keys [actor permission key]}]
    (prn @client)
-   (prn "Logging in with " hi)
+   (prn "Logging in with " actor)
    (.call (g/get @client "login")
           @client
           actor
