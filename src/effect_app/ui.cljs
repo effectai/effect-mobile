@@ -23,7 +23,8 @@
             :key-skeleton (js/require "./img/icon/1/key-skeleton-left-right.png")
             :laptop-mobile (js/require "./img/icon/1/laptop-mobile.png")})
 
-(def logo-landing (js/require "./img/logo/logo-landing-400x400.png"))
+(def logo-landing
+  (js/require "./img/logo/logo-landing-400x400.png"))
 
 (defui text [{:keys [children style]}]
   ($ Text {:style (merge
